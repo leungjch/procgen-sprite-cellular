@@ -77,7 +77,7 @@ class Cellular_Automata
                   // check if within bounds
                   if (!this.config['Wrap_Edges'])
                   {
-                      if (xPos+xDist >= 0 && xPos+xDist < WORLDWIDTH && yPos+yDist >= 0 && yPos+yDist < WORLDHEIGHT)
+                      if (xPos+xDist >= 0 && xPos+xDist < this.config['Width'] && yPos+yDist >= 0 && yPos+yDist < this.config['Height'])
                       {
                           // if this cell is alive, update neighbour count
                           if (cell_snapshot[xPos+xDist][yPos+yDist].state === config['Max_State'])
@@ -92,24 +92,23 @@ class Cellular_Automata
                       var wrap_y = yPos+yDist;
                       if (wrap_x === -1)
                       {
-                          wrap_x = WORLDWIDTH-1
+                          wrap_x = this.config['Width']-1
                       }
-                      else if (wrap_x > WORLDWIDTH-1)
+                      else if (wrap_x > this.config['Width']-1)
                       {
                           wrap_x = 0
                       }
                       if (wrap_y === -1)
                       {
-                          wrap_y = WORLDHEIGHT - 1
+                          wrap_y = this.config['Height'] - 1
                       }
-                      else if (wrap_y > WORLDHEIGHT-1)
+                      else if (wrap_y > this.config['Height']-1)
                       {
                           wrap_y = 0
                       }
                       // console.log(wrap_y, wrap_x)
-                      if (cell_snapshot[wrap_x][wrap_y].state === config['Max_State'])
+                      if (cell_snapshot[wrap_x][wrap_y].state === this.config['Max_State'])
                       {
-                          // console.log("hi")
                           n_neighbours = n_neighbours + 1
                       }
                   }
@@ -152,58 +151,60 @@ class Cellular_Automata
       }
   }
 
-  // Update system by one time step
-  iterate()
+  // Update system n times (default 1)
+  iterate(n=1)
   {
-      var myCells = this.cells
-      // create a copy of the system
-      // this is necessary because looping through and updating the system will cause 
-      // later cells to be updated based on the *new* cells, which is not what we want
-      const cells_read_only = JSON.parse(JSON.stringify(myCells))
-      // const cells_read_only = Object.assign({}, myCells)
-      var cells_updated = myCells;
-      this.cells_alive = [];
-      for (let x = 0; x < WORLDWIDTH; ++x)
-      {
-          for (let y = 0; y < WORLDHEIGHT; ++y)
-          {
-              // Count neighbours
-              // pass in a snapshot of the cell system
-              var n_neighbours = this.count_neighbours(x,y, cells_read_only);
-              // For dead  (empty) cells
-              // Create a new cell at this location if it is dead and contains n_neighbours in rule
+    for (var z = 0; z < n; z++)
+    {
+        var myCells = this.cells
+        // create a copy of the system
+        // this is necessary because looping through and updating the system will cause 
+        // later cells to be updated based on the *new* cells, which is not what we want
+        const cells_read_only = JSON.parse(JSON.stringify(myCells))
+        // const cells_read_only = Object.assign({}, myCells)
+        var cells_updated = myCells;
+        this.cells_alive = [];
+        for (let x = 0; x < WORLDWIDTH; ++x)
+        {
+            for (let y = 0; y < WORLDHEIGHT; ++y)
+            {
+                // Count neighbours
+                // pass in a snapshot of the cell system
+                var n_neighbours = this.count_neighbours(x,y, cells_read_only);
+                // For dead  (empty) cells
+                // Create a new cell at this location if it is dead and contains n_neighbours in rule
 
-              if (this.config['Birth_Rule'].includes(n_neighbours) && cells_read_only[x][y].state === 0)
-              {
-                  cells_updated[x][y].state = this.config['Max_State'];
-                  cells_alive.push(cells_updated[x][y])
-              }
+                if (this.config['Birth_Rule'].includes(n_neighbours) && cells_read_only[x][y].state === 0)
+                {
+                    cells_updated[x][y].state = this.config['Max_State'];
+                    this.cells_alive.push(cells_updated[x][y])
+                }
 
-              // Else check alive cells
-              // Keep cell alive if cell contains this many neighbours
-              else if (this.config['Alive_Rule'].includes(n_neighbours) && cells_read_only[x][y].state === this.config['Max_State'])
-              {
-                  cells_updated[x][y].state = this.config[ 'Max_State'];
-                  cells_alive.push(cells_updated[x][y])
-              }
-              // Else, cell loses 1 state (state--) or is dead (state=0)
-              else
-              {
-                  cells_updated[x][y].state = Math.max(0, cells_read_only[x][y].state-1)
-                  if (cells_updated[x][y].state > 0)
-                  {
-                    cells_alive.push(cells_updated[x][y])
-                  }
-              }
-          }
-      }
-      // update cells
-      this.cells = cells_updated;
-      this.system.push(cells_updated);
-      this.system_alive.push(cells_alive);
+                // Else check alive cells
+                // Keep cell alive if cell contains this many neighbours
+                else if (this.config['Alive_Rule'].includes(n_neighbours) && cells_read_only[x][y].state === this.config['Max_State'])
+                {
+                    cells_updated[x][y].state = this.config[ 'Max_State'];
+                    this.cells_alive.push(cells_updated[x][y])
+                }
+                // Else, cell loses 1 state (state--) or is dead (state=0)
+                else
+                {
+                    cells_updated[x][y].state = Math.max(0, cells_read_only[x][y].state-1)
+                    if (cells_updated[x][y].state > 0)
+                    {
+                      this.cells_alive.push(cells_updated[x][y])
+                    }
+                }
+            }
+        }
+        // update cells
+        this.cells = cells_updated;
+        this.system.push(cells_updated);
+        this.system_alive.push(this.cells_alive);
+    }
+
   }
-
-
 
 }
 
@@ -227,31 +228,88 @@ class Cell
 
 class Square
 {
-  // square contains rgb values and its type - "body" or "outline"
-  constructor(r, g, b, type) 
+  // square contains color values and its type - "body" or "outline"
+  // color is a hex string
+  constructor(color, type) 
   {
-      this.r = r;
-      this.g = g;
-      this.b = b;
+      this.color = color;
       this.type = type;
   }
 
 }
 class Sprite
 {
-  // final_system is a 2D array used to generate the final sprite
-  // initial_system is the seed 2D array that, when iterated through using the appropriate rule, will yield the final_system
-  // config is the ruleset used to generate the final_system (e.g. Conway's Game of Life or Brian's Brain)
+  // pass in a Cellular_Automata object to the sprite which we use to generate the full sprite
   // symmetry refers to the axis of symmetry requested when we flip. Valid values: "none", "vertical", "horizontal", "left diagonal", "right diagonal"
-  constructor(final_system, initial_system, config, symmetry)
+  constructor(cellular_automata, symmetry)
   {
-      this.final_system = final_system;
-      this.initial_system = initial_system;
-      this.config = config;
-      this.symmetry_type = symmetry;
-      this.graphics = [] // create an empty graphics array to fill with squares
+      this.cellular_automata = cellular_automata;
+      this.symmetry = symmetry;
+
+      if (symmetry === "vertical")
+      {
+        this.SpriteWidth = this.cellular_automata.config['Width'] + 2 ;
+        this.SpriteHeight = this.cellular_automata.config['Height'] * 2 + 2;
+      }
+      else if (symmetry === "horizontal")
+      {
+        this.SpriteWidth = this.cellular_automata.config['Width'] * 2 + 2;
+        this.SpriteHeight = this.cellular_automata.config['Height'] + 2;
+      }
+      else if (symmetry === "center")
+      {
+        this.SpriteWidth = this.cellular_automata.config['Width'] * 2 + 2;
+        this.SpriteHeight = this.cellular_automata.config['Height'] * 2 + 2;
+      }
+      else
+      {
+        this.SpriteWidth = this.cellular_automata.config['Width'] + 2;
+        this.SpriteHeight = this.cellular_automata.config['Height'] + 2;
+      }
+      this.graphics = Array(this.SpriteWidth).fill( new Square("ffffff", "empty") )
+      .map(x => Array(this.SpriteHeight).fill( new Square("ffffff", "empty") )); // create an empty graphics array to fill with Square objects
+
   }
 
+  // count surroundings at x,y (left,right,bottom,top,topright,topleft,bottomleft,bottomright)
+  // needed to fill outline
+  count_neighbours(xPos,yPos)
+  {
+    var n_neighbours = 0;
+
+    var moore_simple_neighborhood = [
+      [1,1,1],
+      [1,0,1],
+      [1,1,1]
+    ];
+    var cell_snapshot = this.cellular_automata.cells;
+
+    for (let a = 0; a < moore_simple_neighborhood.length; a++)
+    {
+        for (let b = 0; b < moore_simple_neighborhood[0].length; b++)
+        {
+            // check if neighborhood item is true, else skip
+            if (moore_simple_neighborhood[a][b] === 1)
+            {
+                // get distance from center of neighborhood to current cell to check in neighborhood
+                var xDist = b - Math.floor(moore_simple_neighborhood.length/2);
+                var yDist = a - Math.floor(moore_simple_neighborhood.length/2);
+
+                // access cell xDist,yDist away from the center of the cell with global coordinates xPos, yPos
+                // check if within bounds
+                if (xPos+xDist >= 1 && xPos+xDist < this.cellular_automata.config['Width'] && yPos+yDist >= 1 && yPos+yDist < this.cellular_automata.config['Height'])
+                {
+                    // if this cell is alive, update neighbour count
+                    if (cell_snapshot[xPos+xDist][yPos+yDist].state === config['Max_State'])
+                    {
+                        n_neighbours = n_neighbours + 1
+                    }
+                }
+            }
+        }
+      }
+      return n_neighbours;
+  }
   // complete the sprite
   generate_sprite()
   {
@@ -261,92 +319,119 @@ class Sprite
     // [\ _ _ \]
     // [\ \ \ \]
 
-    for (var x = 0; x < this.config['Width']+2; x++)
+    // loop through cells
+  
+
+    if (this.symmetry == "vertical")
+    {
+      var limX = Math.ceil(this.SpriteWidth/2);
+      var limY = this.SpriteHeight;
+    }
+    else if (this.symmetry == "horizontal")
+    {
+      var limX = this.SpriteWidth;
+      var limY = Math.ceil(this.SpriteHeight/2);
+
+    }
+    else if (this.symmetry == "center")
+    {
+      var limX = Math.ceil(this.SpriteWidth/2);
+      var limY = Math.ceil(this.SpriteHeight/2);
+
+    }
+
+    for (var x = 0; x < limX; x++)
     {
       this.graphics[x] = [];
-      for (var y = 0; y < this.config['Height']+2; y++)
+      for (var y = 0; y < limY; y++)
       {
+        this.graphics[x][y] = new Square("#ffffff", "empty")
+
+        var isSquare = false;
+        var isEdge = false;
         // check if we are inside the border
-        if (x < this.config['Width']+1 && x > 1 && y < this.config['Height']+1 && y > 1)
+        if (x + 1 < this.cellular_automata['Width'] && y + 1 < this.cellular_automata.config['Height'] 
+        && this.cellular_automata.cells[x + 1][y + 1].state !== undefined && this.cellular_automata.cells[x + 1][y + 1].state > 0)
         {
-          if (this.final_system[x][y].state > 0)
+          // fill in square at that location
+          this.graphics[x][y] = new Square("#0000ff", "body")
+          isSquare = true;
+        }
+        // check if we can fill edge if cell is empty
+        else if (this.count_neighbours(x,y) > 0)
+        {
+          this.graphics[x][y] = new Square("#00ff00", "edge")
+          isEdge = true;
+        }
+        
+        // check surroundings 
+        // apply symmetry if requested
+
+        // flip on vertical axis of symmetry
+        if (this.symmetry == "vertical")
+        {
+          if (isSquare)
           {
-            // fill in square at that location
-            this.graphics[x][y] = new Square(40,40,40, "body")
-  
-            // apply symmetry to square
-  
-            // flip on vertical axis of symmetry
-            if (this.symmetry == "vertical")
-            {
-              
-            }
-            else if (this.symmetry == "horizontal")
-            {
-  
-            }
-            else if (this.symmetry == "l_diagonal")
-            {
-  
-            }
-            else if (this.symmetry == "r_diagonal")
-            {
-  
-            }
+            this.graphics[this.SpriteWidth-x-1][y] = new Square("#0000ff", "body")
+          }
+          else if (isEdge)
+          {
+            this.graphics[this.SpriteWidth-x-1][y] = new Square("#00ff00", "edge")
           }
         }
-        // else we are on the border
-        else
+        else if (this.symmetry == "horizontal")
         {
-          
+          if (isSquare)
+          {
+            this.graphics[x-1][y-1] = new Square("#000000", "body")
+          }
+          else if (isEdge)
+          {
+            this.graphics[x-1][y-1] = new Square("#000000", "edge")
+          }
         }
-       
-        // square is empty, so check neighbours to fill edge
-        // else if (this.cell_system.count_neighbours(x, y, this.cell_system.cells) > 0)
-        // {
-        //   this.graphics[x][y] = new Square(0,0,0, "outline")
-        // }
+        else if (this.symmetry == "center")
+        {
+          if (isSquare)
+          {
+            this.graphics[x-1][y-1] = new Square("#000000", "body")
+          }
+          else if (isEdge)
+          {
+            this.graphics[x-1][y-1] = new Square("#000000", "edge")
+          }
+        }
+
       }
     }
   }
 }
-
-
 
 var System = new Cellular_Automata(config, neighborhood);
 function setup() {
   createCanvas(WIDTH, HEIGHT);
   frameRate(10);
   System.init(0.5);
-  System.iterate();
+  System.iterate(3);
+  mySprite = new Sprite(System, "vertical")
+  mySprite.generate_sprite();
 }
 
 function draw() {
-//   background(220);
-//   stroke(0)
-//     // loop through only alive cells to speedup rendering
-//     for (var z = 0; z < cells_alive.length; ++z)
-//     {
-//         var squareColor = color(alive_color_code);
-//         squareColor.setAlpha(cells_alive[z].state/config['Max_State']*255);
-//         fill(squareColor);
+  background(220);
+  noStroke()
+    // loop through only alive cells to speedup rendering
+    for (var x = 0; x < mySprite.SpriteWidth; x++)
+    {
+      for (var y = 0; y < mySprite.SpriteHeight; y++)
+      {
+        var squareColor = mySprite.graphics[x][y].color;
+        fill(squareColor);
 
-//         rect(cells_alive[z].x*GRIDSIZE, cells_alive[z].y*GRIDSIZE,GRIDSIZE,GRIDSIZE)
-//         if (finished)
-//         {
-//           rect((WORLDWIDTH*2 - cells_alive[z].x - 1)*GRIDSIZE, cells_alive[z].y*GRIDSIZE,GRIDSIZE,GRIDSIZE)
-//         }
-//     }
+        rect(x*GRIDSIZE, y*GRIDSIZE,GRIDSIZE,GRIDSIZE)
 
-//   // limit iterations
-//   if (time < max_iteration)
-//   {
-//     cells = iterate(cells);
-//     time += 1;
-//   }
-//   else if (time >= max_iteration && !finished)
-//   {
-//     finished = true;
-//   }
+      }
+    }
+
 
 }
