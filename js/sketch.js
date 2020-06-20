@@ -1,4 +1,4 @@
-var WORLDWIDTH = 5; // number of tiles (cells) 
+var WORLDWIDTH = 4; // number of tiles (cells) 
 var WORLDHEIGHT = 8;
 
 var SPRITEWIDTH = WORLDWIDTH*2+2; // include two border outlines
@@ -32,7 +32,13 @@ var moore_simple_neighborhood = [
   [1,0,1],
   [1,1,1]
 ];
-var neighborhood = moore_simple_neighborhood;
+var von_neumann_simple_neighborhood = [
+  [0,1,0],
+  [1,0,1],
+  [0,1,0]
+];
+
+var neighborhood = von_neumann_simple_neighborhood;
 
 var alive_color_code = "#2E8B9F"
 
@@ -503,17 +509,34 @@ class Sprite
   }
 }
 
+
+function getRandomInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 var System = new Cellular_Automata(config, neighborhood);
 var Sprites = [];
 var Systems = [];
 function setup() {
   createCanvas(WIDTH, HEIGHT);
   frameRate(60);
-  for (var i = 0; i < 200; i++)
+  for (var i = 0; i < 153; i++)
   {
+    if (Math.random()>0.5)
+    {
+      neighborhood = von_neumann_simple_neighborhood;
+    }
+    else
+    {
+      neighborhood = moore_simple_neighborhood;
+    }
     var System = new Cellular_Automata(config, neighborhood);
-    System.init(Math.random()/2);
-    System.iterate(Math.ceil(Math.random()*5));
+    System.init(Math.random());
+    // System.iterate(Math.ceil(Math.random()*3));
+    System.iterate(getRandomInt(2,5));
+
     mySprite = new Sprite(System, "vertical")
     mySprite.generate_sprite();
     Systems.push(System);
