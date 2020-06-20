@@ -538,7 +538,8 @@ function draw() {
           var squareColor = mySprite.graphics[x][y].color;
   
           fill(squareColor);
-  
+          stroke(squareColor)
+
           rect(c*mySprite.SpriteWidth*GRIDSIZE/3 + x*GRIDSIZE/4+20,z*mySprite.SpriteWidth*GRIDSIZE/3 + y*GRIDSIZE/4+20,GRIDSIZE/4,GRIDSIZE/4)
         }
       }

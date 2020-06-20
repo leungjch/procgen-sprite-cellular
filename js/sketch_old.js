@@ -945,7 +945,7 @@ function cellular_sketch (sketch) {
     }
 
     // handle drawing
-    sketch.background(231,245,248);
+    // sketch.background(231,245,248);
     sketch.noStroke() 
 
     // loop through only alive cells to speedup rendering
