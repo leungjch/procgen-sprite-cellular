@@ -1,13 +1,12 @@
-var WORLDWIDTH = 4; // number of tiles (cells) 
+var WORLDWIDTH = 5; // number of tiles (cells) 
 var WORLDHEIGHT = 8;
 
 var SPRITEWIDTH = WORLDWIDTH*2+2; // include two border outlines
 var SPRITEHEIGHT = WORLDHEIGHT+2;
 
-const WIDTH = Math.min(window.innerWidth/1.2, window.innerHeight/1.2); // width of app in pixels
-const HEIGHT = Math.min(window.innerWidth/1.2, window.innerHeight/1.2); // height of app in pixels
-
-var GRIDSIZE = HEIGHT/WORLDHEIGHT;
+const WIDTH = 1920;
+const HEIGHT = 1080;
+var GRIDSIZE = HEIGHT/WORLDHEIGHT/4;
 
 
 var sprite = [] // a 2D array containing the complete sprite (including )
@@ -246,15 +245,18 @@ class Sprite
       this.cellular_automata = cellular_automata;
       this.symmetry = symmetry;
 
+      // set body color
+      this.color_body = "#" + Math.floor(Math.random()*16777215).toString(16);
+      this.color_edge = "#000000";
       if (symmetry === "vertical")
       {
-        this.SpriteWidth = this.cellular_automata.config['Width'] + 2 ;
-        this.SpriteHeight = this.cellular_automata.config['Height'] * 2 + 2;
+        this.SpriteWidth = this.cellular_automata.config['Width'] * 2 + 2 ;
+        this.SpriteHeight = this.cellular_automata.config['Height'] + 2;
       }
       else if (symmetry === "horizontal")
       {
-        this.SpriteWidth = this.cellular_automata.config['Width'] * 2 + 2;
-        this.SpriteHeight = this.cellular_automata.config['Height'] + 2;
+        this.SpriteWidth = this.cellular_automata.config['Width'] + 2;
+        this.SpriteHeight = this.cellular_automata.config['Height'] * 2 + 2;
       }
       else if (symmetry === "center")
       {
@@ -282,7 +284,6 @@ class Sprite
       [1,0,1],
       [1,1,1]
     ];
-    var cell_snapshot = this.cellular_automata.cells;
 
     for (let a = 0; a < moore_simple_neighborhood.length; a++)
     {
@@ -297,10 +298,11 @@ class Sprite
 
                 // access cell xDist,yDist away from the center of the cell with global coordinates xPos, yPos
                 // check if within bounds
-                if (xPos+xDist >= 1 && xPos+xDist < this.cellular_automata.config['Width'] && yPos+yDist >= 1 && yPos+yDist < this.cellular_automata.config['Height'])
+                // console.log(xPos+xDist, yPos+yDist, this.graphics)
+                if (xPos+xDist >= 0 && xPos+xDist < this.SpriteWidth && yPos+yDist >= 0 && yPos+yDist < this.SpriteHeight)
                 {
                     // if this cell is alive, update neighbour count
-                    if (cell_snapshot[xPos+xDist][yPos+yDist].state === config['Max_State'])
+                    if (this.graphics[xPos+xDist][yPos+yDist].type === "body")
                     {
                         n_neighbours = n_neighbours + 1
                     }
@@ -312,6 +314,97 @@ class Sprite
   }
   // complete the sprite
   generate_sprite()
+  {
+    if (this.symmetry == "vertical")
+    {
+      var limX = this.cellular_automata.config['Width']*2;
+      var limY = this.cellular_automata.config['Height'];
+    }
+    else if (this.symmetry == "horizontal")
+    {
+      var limX = this.cellular_automata.config['Width'];
+      var limY = this.cellular_automata.config['Height']*2;
+
+    }
+    else if (this.symmetry == "center")
+    {
+      var limX = this.cellular_automata.config['Width']*2;
+      var limY = this.cellular_automata.config['Height']*2;
+    }
+
+    // initialize big array
+    this.graphics = [];
+    for (var a = 0; a < limX; a++)
+    {
+      this.graphics[a] = []
+      for (var b = 0; b < limY; b++)
+      {
+        this.graphics[a][b] = new Square("#ffffff", "empty")
+      }
+    }
+    
+    // copy the object
+    for (var x = 0; x < this.cellular_automata.config['Width']; x++)
+    {
+      for (var y = 0; y < this.cellular_automata.config['Height']; y++)
+      {
+        if (this.cellular_automata.cells[x][y].state > 0)
+        {
+          // fill square at location
+          this.graphics[x][y] = new Square(this.color_body, "body")
+
+          // apply symmetry
+          if (this.symmetry === "vertical")
+          {
+            this.graphics[limX-1-x][y] = new Square(this.color_body, "body")
+          }
+          else if (this.symmetry === "horizontal")
+          {
+            this.graphics[x][limY-1-y] = new Square(this.color_body, "body")
+          }
+          else if (this.symmetry === "center")
+          {
+            this.graphics[limX-1-x][y] = new Square(this.color_body, "body")
+            this.graphics[limX-1-x][limY-1-y] = new Square(this.color_body, "body")
+            this.graphics[x][limY-1-y] = new Square(this.color_body, "body")
+          }
+        }
+
+      }
+      // top and bottom
+      this.graphics[x].unshift(new Square("#ffffff", "empty"))
+      this.graphics[x].push(new Square("#ffffff", "empty"))
+
+      if (this.symmetry === "vertical")
+      {
+        this.graphics[limX-1-x].unshift(new Square("#ffffff", "empty"))
+        this.graphics[limX-1-x].push(new Square("#ffffff", "empty"))
+      }
+
+      // add padding
+
+    }
+    // add side padding
+    this.graphics.unshift( new Array(limY+2).fill( new Square("ffffff", "empty") ))
+    this.graphics.push( new Array(limY+2).fill( new Square("ffffff", "empty") ))
+
+    // fill edges
+    
+    for (var x = 0; x < this.SpriteWidth; x++)
+    {
+      for (var y = 0; y < this.SpriteHeight; y++)
+      {
+        // console.log("width = ", this.SpriteWidth, this.SpriteHeight, limX, limY)
+        if (this.count_neighbours(x,y) > 0 && this.graphics[x][y].type === "empty")
+        {
+          this.graphics[x][y] = new Square("#4f3911", "edge")
+        }
+      }
+    }
+  }
+
+
+  generate_sprite_old()
   {
     // sprite has width+2 and height+2 to account for borders
     // [\ \ \ \]
@@ -331,15 +424,12 @@ class Sprite
     {
       var limX = this.SpriteWidth;
       var limY = Math.ceil(this.SpriteHeight/2);
-
     }
     else if (this.symmetry == "center")
     {
       var limX = Math.ceil(this.SpriteWidth/2);
       var limY = Math.ceil(this.SpriteHeight/2);
-
     }
-
     for (var x = 0; x < limX; x++)
     {
       this.graphics[x] = [];
@@ -349,21 +439,27 @@ class Sprite
 
         var isSquare = false;
         var isEdge = false;
-        // check if we are inside the border
-        if (x + 1 < this.cellular_automata['Width'] && y + 1 < this.cellular_automata.config['Height'] 
-        && this.cellular_automata.cells[x + 1][y + 1].state !== undefined && this.cellular_automata.cells[x + 1][y + 1].state > 0)
+        // console.log(this.cellular_automata.cells)
+        // console.log(x,y, this.SpriteWidth, this.SpriteHeight, this.cellular_automata.config['Width'], this.cellular_automata.config['Height'])
+        if (this.count_neighbours(x,y) > 0)
         {
+          this.graphics[x][y] = new Square("#4f3911", "edge")
+          isEdge = true;
+        }
+
+        // check if we are inside the border
+        if ((x >= 1 && y >= 1)
+        && (x < this.cellular_automata.config['Width'] && y < this.cellular_automata.config['Height'])
+        && this.cellular_automata.cells[x][y].state > 0)
+        {
+          // console.log(x,y, this.SpriteWidth, this.SpriteHeight, this.cellular_automata.config['Width'], this.cellular_automata.config['Height'])
+
           // fill in square at that location
-          this.graphics[x][y] = new Square("#0000ff", "body")
+          this.graphics[x][y] = new Square(this.color_body, "body")
           isSquare = true;
         }
         // check if we can fill edge if cell is empty
-        else if (this.count_neighbours(x,y) > 0)
-        {
-          this.graphics[x][y] = new Square("#00ff00", "edge")
-          isEdge = true;
-        }
-        
+
         // check surroundings 
         // apply symmetry if requested
 
@@ -372,33 +468,33 @@ class Sprite
         {
           if (isSquare)
           {
-            this.graphics[this.SpriteWidth-x-1][y] = new Square("#0000ff", "body")
+            this.graphics[this.SpriteWidth-x-1][y] = new Square(this.color_body, "body")
           }
           else if (isEdge)
           {
-            this.graphics[this.SpriteWidth-x-1][y] = new Square("#00ff00", "edge")
+            this.graphics[this.SpriteWidth-x-1][y] = new Square("#4f3911", "edge")
           }
         }
         else if (this.symmetry == "horizontal")
         {
           if (isSquare)
           {
-            this.graphics[x-1][y-1] = new Square("#000000", "body")
+            this.graphics[x-1][y-1] = new Square(this.color_body, "body")
           }
           else if (isEdge)
           {
-            this.graphics[x-1][y-1] = new Square("#000000", "edge")
+            this.graphics[x-1][y-1] = new Square("#4f3911", "edge")
           }
         }
         else if (this.symmetry == "center")
         {
           if (isSquare)
           {
-            this.graphics[x-1][y-1] = new Square("#000000", "body")
+            this.graphics[x-1][y-1] = new Square(this.color_body, "body")
           }
           else if (isEdge)
           {
-            this.graphics[x-1][y-1] = new Square("#000000", "edge")
+            this.graphics[x-1][y-1] = new Square("#4f3911", "edge")
           }
         }
 
@@ -408,30 +504,55 @@ class Sprite
 }
 
 var System = new Cellular_Automata(config, neighborhood);
+var Sprites = [];
+var Systems = [];
 function setup() {
   createCanvas(WIDTH, HEIGHT);
-  frameRate(10);
-  System.init(0.5);
-  System.iterate(3);
-  mySprite = new Sprite(System, "vertical")
-  mySprite.generate_sprite();
+  frameRate(60);
+  for (var i = 0; i < 200; i++)
+  {
+    var System = new Cellular_Automata(config, neighborhood);
+    System.init(Math.random()/2);
+    System.iterate(Math.ceil(Math.random()*5));
+    mySprite = new Sprite(System, "vertical")
+    mySprite.generate_sprite();
+    Systems.push(System);
+    Sprites.push(mySprite);
+
+  }
 }
 
 function draw() {
   background(220);
   noStroke()
+  var c = 0;
+  var z = 0;
     // loop through only alive cells to speedup rendering
-    for (var x = 0; x < mySprite.SpriteWidth; x++)
+    for (let mySprite of Sprites)
     {
-      for (var y = 0; y < mySprite.SpriteHeight; y++)
+      for (var x = 0; x < mySprite.graphics.length; x++)
       {
-        var squareColor = mySprite.graphics[x][y].color;
-        fill(squareColor);
-
-        rect(x*GRIDSIZE, y*GRIDSIZE,GRIDSIZE,GRIDSIZE)
+        for (var y = 0; y < mySprite.graphics[0].length; y++)
+        {
+          // console.log(x,y)
+          var squareColor = mySprite.graphics[x][y].color;
+  
+          fill(squareColor);
+  
+          rect(c*mySprite.SpriteWidth*GRIDSIZE/3 + x*GRIDSIZE/4+20,z*mySprite.SpriteWidth*GRIDSIZE/3 + y*GRIDSIZE/4+20,GRIDSIZE/4,GRIDSIZE/4)
+        }
+      }
+      if (c*mySprite.SpriteWidth*GRIDSIZE/3 + x*GRIDSIZE/4+20 > 1800)
+      {
+        c = 0;
+        z += 1;
+      }
+      else
+      {
+        c+=1;
 
       }
-    }
 
+    }
 
 }
