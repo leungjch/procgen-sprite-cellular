@@ -5,7 +5,7 @@ var SPRITEWIDTH = WORLDWIDTH*2+2; // include two border outlines
 var SPRITEHEIGHT = WORLDHEIGHT+2;
 
 var SHOW_GRID = true;
-var framerate = 60;
+var framerate = 0.5;
 var WIDTH, HEIGHT, GRIDSIZE;
 
 if (SHOW_GRID)
