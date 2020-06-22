@@ -4,9 +4,24 @@ var WORLDHEIGHT = 8;
 var SPRITEWIDTH = WORLDWIDTH*2+2; // include two border outlines
 var SPRITEHEIGHT = WORLDHEIGHT+2;
 
-const WIDTH = 1920;
-const HEIGHT = 1080;
-var GRIDSIZE = HEIGHT/WORLDHEIGHT/4;
+var SHOW_GRID = true;
+var framerate = 60;
+var WIDTH, HEIGHT, GRIDSIZE;
+
+if (SHOW_GRID)
+{
+   WIDTH = 1920;
+   HEIGHT = 1080;
+   GRIDSIZE = WIDTH/SPRITEWIDTH/4;
+
+}
+else
+{
+ WIDTH = SPRITEWIDTH*1;
+ HEIGHT = SPRITEHEIGHT*1;
+ GRIDSIZE = 1;
+
+}
 
 
 var sprite = [] // a 2D array containing the complete sprite (including )
@@ -36,6 +51,12 @@ var von_neumann_simple_neighborhood = [
   [0,1,0],
   [1,0,1],
   [0,1,0]
+];
+
+var alt_neighborhood = [
+  [1,0,1],
+  [0,0,0],
+  [1,0,1]
 ];
 
 var neighborhood = von_neumann_simple_neighborhood;
@@ -521,35 +542,49 @@ var Sprites = [];
 var Systems = [];
 function setup() {
   createCanvas(WIDTH, HEIGHT);
-  frameRate(60);
-  for (var i = 0; i < 153; i++)
+  frameRate(framerate);
+
+}
+
+function draw() {
+  Sprites = [];
+  Systems = [];
+  //https://gist.github.com/peterhellberg/3c5b30465a258f6b688a8f11955b12ba
+  for (var i = 0; i < 100; i++)
   {
-    if (Math.random()>0.5)
+    var random_neighborhood = Math.random()
+    if (random_neighborhood<0.3)
     {
       neighborhood = von_neumann_simple_neighborhood;
     }
-    else
+    else if (random_neighborhood < 0.6)
     {
       neighborhood = moore_simple_neighborhood;
     }
+    else
+    {
+      neighborhood = alt_neighborhood;
+    }
     var System = new Cellular_Automata(config, neighborhood);
+    // System.init(0.05);
     System.init(Math.random());
     // System.iterate(Math.ceil(Math.random()*3));
-    System.iterate(getRandomInt(2,5));
-
+    // System.iterate(getRandomInt(2,5));
+    System.iterate(getRandomInt(0,4));
     mySprite = new Sprite(System, "vertical")
     mySprite.generate_sprite();
     Systems.push(System);
     Sprites.push(mySprite);
-
   }
-}
-
-function draw() {
   background(220);
   noStroke()
   var c = 0;
   var z = 0;
+
+
+
+  if (SHOW_GRID)
+  {
     // loop through only alive cells to speedup rendering
     for (let mySprite of Sprites)
     {
@@ -563,10 +598,10 @@ function draw() {
           fill(squareColor);
           stroke(squareColor)
 
-          rect(c*mySprite.SpriteWidth*GRIDSIZE/3 + x*GRIDSIZE/4+20,z*mySprite.SpriteWidth*GRIDSIZE/3 + y*GRIDSIZE/4+20,GRIDSIZE/4,GRIDSIZE/4)
+          rect(c*mySprite.SpriteWidth*GRIDSIZE/3 + x*GRIDSIZE/4+20,z*mySprite.SpriteHeight*GRIDSIZE/3 + y*GRIDSIZE/4+20,GRIDSIZE/4,GRIDSIZE/4)
         }
       }
-      if (c*mySprite.SpriteWidth*GRIDSIZE/3 + x*GRIDSIZE/4+20 > 1800)
+      if (c*mySprite.SpriteWidth*GRIDSIZE/3 + x*GRIDSIZE/4+20 > WIDTH-250)
       {
         c = 0;
         z += 1;
@@ -578,5 +613,37 @@ function draw() {
       }
 
     }
+  }
+  else
+  {
+  for (var x = 0; x < Sprites[0].graphics.length; x++)
+  {
+    for (var y = 0; y < Sprites[0].graphics[0].length; y++)
+    {
+          var squareColor = mySprite.graphics[x][y].color;
+          
+          // use transparency
+          if (mySprite.graphics[x][y].type !== "empty")
+          {
+            fill(squareColor);
+          }
+          else
+          {
+            noFill()
+          }
+
+          // nostroke(squareColor)
+          rect(x*GRIDSIZE,y*GRIDSIZE,GRIDSIZE,GRIDSIZE)
+
+    }
+
+  }
+  if (key === 's') {
+    saveCanvas('myCanvas', 'png');
+
+  }
+  console.log('done')
+  }
+
 
 }
